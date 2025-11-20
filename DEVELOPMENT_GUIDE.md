@@ -33,6 +33,105 @@ Documented environment for reproducibility:
   curl http://<host-ip>:9091/benchmark
   ```
 Firewall must allow inbound traffic on chosen port.
+### Service User and Port Binding Notes
+- All MintCastIQ services run under the dedicated `mintcastiq` service account for audit‑grade clarity.
+- Flask (frontend.py) must **not** bind directly to privileged ports (<1024) when running under non‑root users.
+  - Attempting to bind to port 80 or 443 as `mintcastiq` will result in `Permission denied` errors in systemd logs.
+  - Example log snippet:
+    ```
+    * Serving Flask app 'frontend'
+    * Debug mode: off
+    Permission denied
+    ```
+- **Resolution Options:**
+  1. Run Flask on an unprivileged port (e.g. 8080) and proxy traffic from 80/443 using nginx or another reverse proxy.
+  2. Alternatively, grant the Python binary `cap_net_bind_service` capability:
+     ```bash
+     sudo setcap 'cap_net_bind_service=+ep' /opt/mintcastiq-web/webvenv/bin/python3
+     ```
+     This allows binding to low ports without root, but is less contributor‑friendly.
+- **Recommended practice:** Use port 8080 for the Flask service and configure nginx to proxy external requests to it. This keeps the service user clean and avoids privileged port issues.
+### Reverse Proxy with nginx
+To serve MintCastIQ on standard HTTP/HTTPS ports while keeping Flask on an unprivileged port (e.g. 8080), configure nginx as a reverse proxy:
+1. Install nginx:
+   ```bash
+   sudo apt install nginx
+2. Create a site config /etc/nginx/sites-available/mintcastiq:
+   ```Nginx
+   server {
+    listen 80;
+    server_name mintcastiq.ts.net;
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+  }
+```
+3. Enable the site
+```bash
+sudo ln -s /etc/nginx/sites-available/mintcastiq /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+4. Use certbot (optional)
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d mintcastiq.ts.net
+```
+### Systemd Units
+
+MintCastIQ uses systemd to manage both the Flask frontend and the nginx reverse proxy. This ensures services start on boot, restart on failure, and run under the correct service accounts.
+```ini
+[Unit]
+Description=MintCastIQ Frontend Web Service
+After=network.target
+
+[Service]
+User=mintcastiq
+Group=mintcastiq
+WorkingDirectory=/opt/mintcastiq-web
+ExecStart=/opt/mintcastiq-web/webvenv/bin/python /opt/mintcastiq-web/frontend.py
+Restart=always
+EnvironmentFile=/opt/mintcastiq-web/.env
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
+```
+### Reverse Proxy (nginx)
+File: /etc/systemd/system/nginx.service (usually provided by the package manager)
+
+- nginx runs as www-data by default.
+- Ensure the MintCastIQ site config is enabled (/etc/nginx/sites-enabled/mintcastiq).
+- Systemd will manage nginx automatically once installed.
+
+Check status:
+```bash
+sudo systemctl status nginx
+```
+Enable on boot:
+```bash
+sudo systemctl enable nginx
+```
+Restart after config changes:
+```bash
+sudo systemctl reload nginx
+
+```
+### Contributor Notes
+- Frontend runs on port 8080 under the mintcastiq service user.
+- nginx proxies requests from port 80/443 → 8080.
+- Both services are managed by systemd and should be enabled on boot.
+- If you see Permission denied in logs, check for privileged port binding (Flask must not bind directly to 80/443).
+
+
+#### Frontend (Flask)
+
+File: `/etc/systemd/system/mintcastiq-web.service`
+
 ## Development Standards
 Audit clarity: Every architectural decision logged in this guide.
 Environment reproducibility: Record GPU model, ROCm version, and PyTorch build.
