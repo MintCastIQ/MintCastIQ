@@ -39,70 +39,13 @@ git push origin feature/my-feature
   - Notes on testing and validation.
 - Expect review feedback — clarity and reproducibility are prioritized.
 ---
-## Contributor Roles
 
-MintCastIQ supports two primary contributor types:
+## 🤝 CONTRIBUTING.md (Contributor onboarding)
 
-### 1. Code Contributors
-- **Focus:** Application logic, infrastructure, and pipeline improvements.
-- **Access:** Git repository, issue tracker, and development environment.
-- **Responsibilities:**
-  - Implement new features and bug fixes.
-  - Maintain audit‑grade commit hygiene (tags, milestones, documentation).
-  - Respect modular architecture and contributor‑safe onboarding practices.
-  - Document architectural decisions in `DEVELOPMENT_GUIDE.md`.
+```markdown
+# Contributing to MintCastIQ
 
-### 2. Scan Contributors
-- **Focus:** Providing card scans for probabilistic grading and forensic validation.
-- **Access:** Upload endpoints, contributor‑safe capture pipeline, and annotation guides.
-- **Responsibilities:**
-  - Follow capture standards (lighting, orientation, resolution).
-  - Ensure each card submission includes exactly 10 hashes for deduplication.
-  - Use ergonomic UI and symbolic overlays (no autoscan defaults).
-  - Respect contributor‑safe storage practices (symlinked pipelines, audit‑grade rotation).
-  ┌─────────────────────┐
-  │ Code Contributor    │
-  └─────────┬───────────┘
-            │
-            │
-    pushes code, docs, configs
-            ▼
-  ┌─────────────────────┐
-  │ Git Repository      │
-  │ + CI/CD Pipeline    │
-  └─────────┬───────────┘
-            │
-    deploys services
-            ▼
-  ┌─────────────────────┐
-  │ Frontend Service    │
-  │ (Flask on 8080)     │
-  └─────────┬───────────┘
-            │
-            │
-    provides capture UI
-            ▼
-  ┌─────────────────────┐
-  │ Scan Contributor    │
-  └─────────┬───────────┘
-            │
-            │
-    uploads scans + hashes
-            ▼
-  ┌─────────────────────┐
-  │ Capture Pipeline    │
-  │ (hashing, overlays  │
-  │ validation, logs)   │
-  └─────────┬───────────┘
-            │
-            │
-       validated data
-            ▼
-    ┌─────────────────────┐
-    │ Storage + Analysis  │
-    │ (audit‑grade DB )   │
-    │                     │
-    └─────────────────────┘
+We welcome contributors! Please follow these guidelines:
 
 ---
 ## 👥 Contributor Types (Code)
